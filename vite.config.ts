@@ -1,10 +1,24 @@
 import vinext from "vinext";
 import { defineConfig } from "vite";
-import hostingConfig from "./.openai/hosting.json";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { sites } from "./build/sites-vite-plugin";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
+
+type HostingConfig = {
+  d1?: string | null;
+  r2?: string | null;
+};
+
+// The local Codex preview may provide Cloudflare bindings through this file.
+// GitHub Pages is a static build and intentionally does not publish the local
+// hosting metadata, so fall back to an empty configuration when it is absent.
+const hostingConfigPath = resolve(process.cwd(), ".openai", "hosting.json");
+const hostingConfig: HostingConfig = existsSync(hostingConfigPath)
+  ? JSON.parse(readFileSync(hostingConfigPath, "utf8"))
+  : {};
 
 const { d1, r2 } = hostingConfig;
 
@@ -57,3 +71,4 @@ export default defineConfig(async () => {
     ],
   };
 });
+
