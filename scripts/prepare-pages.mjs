@@ -10,17 +10,8 @@ const textExtensions = new Set([".css", ".html", ".js", ".json", ".map", ".svg",
 // built at /. Rewrite only our local root-relative assets to relative paths so
 // the same artifact works at the repository Pages URL without changing the
 // local preview or exposing a deployment-specific base path to the app.
-const assetPrefixes = [
-  "/_next/",
-  "/avatars/",
-  "/decorations/",
-  "/recipes/",
-  "/showcase/",
-  "/favicon.svg",
-  "/file.svg",
-  "/globe.svg",
-  "/window.svg",
-];
+const assetPattern =
+  /(?<![\w./])\/(?:_next\/|avatars\/|decorations\/|recipes\/|showcase\/|favicon\.svg\b|file\.svg\b|globe\.svg\b|window\.svg\b)/g;
 
 async function walk(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -37,13 +28,9 @@ const files = await walk(clientDirectory);
 for (const file of files) {
   if (!textExtensions.has(extname(file).toLowerCase())) continue;
   let content = await readFile(file, "utf8");
-  for (const prefix of assetPrefixes) {
-    const relativePrefix = `./${prefix.slice(1)}`;
-    content = content
-      .replaceAll(`"${prefix}`, `"${relativePrefix}`)
-      .replaceAll(`'${prefix}`, `'${relativePrefix}`)
-      .replaceAll(`(${prefix}`, `(${relativePrefix}`);
-  }
+  // Match quoted paths, CSS urls, and template literals alike. The negative
+  // lookbehind leaves already-relative `./...` references untouched.
+  content = content.replace(assetPattern, (match) => `.${match}`);
   await writeFile(file, content);
 }
 
